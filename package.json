@@ -1,6 +1,6 @@
 {
 	"name": "translate-and-named",
-	"displayName": "TranslateAndNamed",
+	"displayName": "Translate and Named",
 	"description": "友好的翻译展示及变量命名",
 	"keywords": [
 		"translate",
@@ -13,7 +13,7 @@
 	],
 	"version": "0.0.1",
 	"publisher": "techoo",
-	"icon": "./images/icon.png",
+	"icon": "images/icon.png",
 	"repository": {
         "type": "git",
         "url": "git@github.com:Techhoo/translateAndNamed.git"
