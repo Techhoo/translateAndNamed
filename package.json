@@ -1,0 +1,94 @@
+{
+	"name": "translate-and-named",
+	"displayName": "TranslateAndNamed",
+	"description": "友好的翻译展示及变量命名",
+	"keywords": [
+		"translate",
+		"name",
+		"named",
+		"翻译",
+		"取名",
+		"取变量名",
+		"变量名"
+	],
+	"version": "0.0.1",
+	"publisher": "techoo",
+	"icon": "./images/icon.png",
+	"repository": {
+        "type": "git",
+        "url": "git@github.com:Techhoo/translateAndNamed.git"
+    },
+	"engines": {
+		"vscode": "^1.52.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"*"
+	],
+	"main": "./extension.js",
+	"contributes": {
+		"commands": [
+			{
+				"when": "editorHasSelection",
+				"command": "extension.translateAndNamed",
+				"title": "中文翻译成变量名"
+			}
+		],
+		"menus": {
+			"editor/context": [
+				{
+					"when": "editorHasSelection",
+					"command": "extension.translateAndNamed",
+					"group": "navigation"
+				}
+			]
+		},
+		"keybindings": [
+			{
+				"command": "extension.translateAndNamed",
+				"key": "ctrl+m",
+				"mac": "cmd+m",
+				"when": "editorHasSelection"
+			}
+		],
+		"configuration": [
+			{
+				"title": "TranslateAndNamed",
+				"properties": {
+					"translate.appid": {
+						"type": "string",
+						"default": "20210101000660696",
+						"description": "百度翻译API-appid"
+					},
+					"translate.secret": {
+						"type": "string",
+						"default": "LKTpY_8FiVtud2CjKxbX",
+						"description": "百度翻译API-密钥"
+					}
+				}
+			}
+		]
+	},
+	"scripts": {
+		"lint": "eslint .",
+		"pretest": "npm run lint",
+		"test": "node ./test/runTest.js"
+	},
+	"devDependencies": {
+		"@types/vscode": "^1.52.0",
+		"@types/glob": "^7.1.3",
+		"@types/mocha": "^8.0.4",
+		"@types/node": "^12.11.7",
+		"eslint": "^7.15.0",
+		"glob": "^7.1.6",
+		"mocha": "^8.1.3",
+		"typescript": "^4.1.2",
+		"vscode-test": "^1.4.1"
+	},
+	"dependencies": {
+		"axios": "^0.20.0",
+		"md5": "^2.3.0"
+	}
+}
