@@ -142,7 +142,6 @@ for (let i = 0; i < 16; i++) {
   }
 }
 function searchLocal(ECDICT, selectedText) {
-  console.log(selectedText);
   return ECDICT[selectedText] && ECDICT[selectedText].replace(/\\n/g, ' ');
 }
 
