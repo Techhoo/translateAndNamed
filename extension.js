@@ -7,9 +7,10 @@ const window = vscode.window;
 const commands = vscode.commands;
 const StatusBarAlignment = vscode.StatusBarAlignment;
 const status = window.createStatusBarItem(StatusBarAlignment.Left);
-status.command = "extension.translateAndNamed";
+status.command = "extension.translate";
 
-
+const isUserId = appid !== "20210101000660696";
+//用户id可以无缝展示 无需手动点击请求网络翻译
 function activate(context) {
   context.subscriptions.push(
     window.onDidChangeTextEditorSelection(() => updateStatus())
@@ -19,42 +20,72 @@ function activate(context) {
       updateSelectedText();
     })
   );
+  context.subscriptions.push(
+    commands.registerCommand("extension.translate", async () => {
+      let selectedText = getSelectedText();
+      let showText = status.text.slice(12);
+      if (status.text.endsWith("网络查询")) {
+        showText = await netTranslate(selectedText, "zh");
+        showText += "-----来自百度翻译";
+      }
+      window.showInformationMessage(showText);
+    })
+  );
 }
-
-
-/* 底部bar的内容展示 */
+/* 左侧底部bar的内容完美展示 */
 async function updateStatus() {
   let selectedText = getSelectedText();
   //未选择文本时隐藏
   if (!selectedText) return status.hide();
   //检测选择文本类型  中英互译
   const to = /^\w+$/.test(selectedText) ? "zh" : "en";
-  selectedText =  to === 'zh' ? selectedText.toLocaleLowerCase() : selectedText;
-  //本地有数据则直接展示，不调用api
-  const localResult = searchLocal(ECDICT, selectedText);
-  if (localResult) return showData(localResult);
-  //调用api查询
-  const { data } = await translate(selectedText, "auto", to);
-  if (data.hasOwnProperty("error_code")) return showData(showApiError(data['error_code']));
-  const translatedText = data.trans_result[0].dst;
-  showData(translatedText);
+  selectedText = to === "zh" ? selectedText.toLocaleLowerCase() : selectedText;
+  //en->zh时,本地有数据则直接展示，没有才调用api
+  if (to === "zh") {
+    let localResult = searchLocal(ECDICT, selectedText);
+    if (localResult) return showData(localResult);
+    //是用户自己的appid并且未查到本地词典
+    if (isUserId) {
+      let showText = await netTranslate(selectedText, to);
+      showData(showText);
+      return;
+    } else {
+      //使用我的id时
+      showData("本地词库未查到内容,点我进行网络查询", "$(zoom-in)");
+    }
+  }
+  if (to === "en" && isUserId) {
+    let showText = await netTranslate(selectedText, to);
+    showData(showText);
+  }
 }
 
 /* 底部展示 */
-function showData(translatedText) {
-  status.text = "$(megaphone) " + translatedText;
+function showData(translatedText, icon = "$(megaphone)") {
+  status.text = icon + "  " + translatedText;
   status.show();
+}
+
+/* 网络翻译 */
+async function netTranslate(selectedText, to) {
+  const { data } = await translate(selectedText, "auto", to);
+  if (data.hasOwnProperty("error_code")) {
+    return showApiError(data["error_code"]);
+  } else {
+    return data.trans_result[0].dst;
+  }
 }
 
 /* 百度翻译api对应的错误码展示 */
 const errorCodeObj = {
-  '52001': "请求超时...",
-  '52003': "请检查您自定义的appid是否正确",
-  '54003': "服务器繁忙,请稍后再试",
-  '54005': "请降低长query的发送频率，3s后再试",
+  10000: "查询长字符串,请在插件配置项配置自己的百度翻译appid",
+  52001: "请求超时...",
+  52003: "请检查您自定义的appid是否正确",
+  54003: "服务器繁忙,请稍后再试",
+  54005: "请降低长query的发送频率，3s后再试",
 };
-function showApiError(errorCode){
-  return errorCodeObj[errorCode]
+function showApiError(errorCode) {
+  return errorCodeObj[errorCode];
 }
 
 /* named */
@@ -63,12 +94,18 @@ async function updateSelectedText() {
   let selectedText = getSelectedText();
   //只对中文进行命名操作  简单正则判断下
   if (/^\w+$/.test(selectedText)) return;
+  status.text = `网络请求中...`;
+  status.show();
   const { data } = await translate(selectedText, "zh", "en");
-  if (data.hasOwnProperty("error_code")) return showData(showApiError(data['error_code']));
+  if (data.hasOwnProperty("error_code"))
+    return showData(showApiError(data["error_code"]));
   const translatedText = data.trans_result[0].dst;
+  status.text = translatedText;
   const namedText = await worldSplit(translatedText, selectedText);
+  //防止点其他地方取消
+  if (!getSelectedText()) return
   currentEditor.edit((editBuilder) => {
-    editBuilder.replace(currentEditor.selection, namedText);
+      editBuilder.replace(currentEditor.selection, namedText);
   });
 }
 
@@ -118,6 +155,10 @@ function getSelectedText() {
 
 /* 请求api */
 function translate(q, from, to) {
+  //没有使用自己appid的,进行查询长度限定
+  if (q.length > 30 && !isUserId) {
+    return Promise.resolve({ data: { error_code: 10000 } });
+  }
   var salt = Math.random();
   return axios({
     method: "get",
@@ -142,9 +183,8 @@ for (let i = 0; i < 16; i++) {
   }
 }
 function searchLocal(ECDICT, selectedText) {
-  return ECDICT[selectedText] && ECDICT[selectedText].replace(/\\n/g, ' ');
+  return ECDICT[selectedText] && ECDICT[selectedText].replace(/\\n/g, " ");
 }
-
 
 exports.activate = activate;
 // this method is called when your extension is deactivated

@@ -11,7 +11,7 @@
 		"取变量名",
 		"变量名"
 	],
-	"version": "0.0.2",
+	"version": "0.0.3",
 	"publisher": "techoo",
 	"icon": "images/icon.png",
 	"repository": {
@@ -48,8 +48,8 @@
 		"keybindings": [
 			{
 				"command": "extension.translateAndNamed",
-				"key": "ctrl+m",
-				"mac": "cmd+m",
+				"key": "ctrl+n",
+				"mac": "cmd+n",
 				"when": "editorHasSelection"
 			}
 		],
@@ -60,12 +60,12 @@
 					"translate.appid": {
 						"type": "string",
 						"default": "20210101000660696",
-						"description": "百度翻译API-appid"
+						"description": "百度翻译API-appid,自己申请用着更稳定,查询无缝衔接"
 					},
 					"translate.secret": {
 						"type": "string",
 						"default": "LKTpY_8FiVtud2CjKxbX",
-						"description": "百度翻译API-密钥"
+						"description": "百度翻译API-密钥，自己申请用着更稳定,查询无缝衔接"
 					}
 				}
 			}
