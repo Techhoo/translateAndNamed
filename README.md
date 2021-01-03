@@ -6,7 +6,11 @@
 
 + 选中 中文 文本时，右键选择中文翻译成变量名或者快捷键<kbd>ctrl+m</kbd> 进行变量命名，你也可以点击左下角的翻译结果进行设置变量名
 
-![example5.gif](https://i.loli.net/2021/01/02/VsgRnQ1AMYTueHx.gif)
+![example.gif](https://i.loli.net/2021/01/03/lf8uG9Xq6rCcS47.gif)
+
+## 0.0.2
+
+- 新增本地查询，英译中时，先在本地词典查询。未查询到结果在进行联网查询。
 
 ## 0.0.1
 

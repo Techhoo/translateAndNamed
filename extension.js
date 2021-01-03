@@ -3,18 +3,17 @@ const md5 = require("md5");
 const vscode = require("vscode");
 const appid = vscode.workspace.getConfiguration().get("translate.appid");
 const secret = vscode.workspace.getConfiguration().get("translate.secret");
+const window = vscode.window;
+const commands = vscode.commands;
+const StatusBarAlignment = vscode.StatusBarAlignment;
+const status = window.createStatusBarItem(StatusBarAlignment.Left);
+status.command = "extension.translateAndNamed";
+
+
 function activate(context) {
-  const window = vscode.window;
-  const StatusBarAlignment = vscode.StatusBarAlignment;
-  const commands = vscode.commands;
-
-  const status = window.createStatusBarItem(StatusBarAlignment.Left);
-  status.command = "extension.translateAndNamed";
-  // context.subscriptions.push(status);
   context.subscriptions.push(
-    window.onDidChangeTextEditorSelection(() => updateStatus(status))
+    window.onDidChangeTextEditorSelection(() => updateStatus())
   );
-
   context.subscriptions.push(
     commands.registerCommand("extension.translateAndNamed", () => {
       updateSelectedText();
@@ -22,27 +21,50 @@ function activate(context) {
   );
 }
 
-//底部bar的内容展示
-async function updateStatus(status) {
-  const selectedText = getSelectedText();
+
+/* 底部bar的内容展示 */
+async function updateStatus() {
+  let selectedText = getSelectedText();
+  //未选择文本时隐藏
   if (!selectedText) return status.hide();
+  //检测选择文本类型  中英互译
   const to = /^\w+$/.test(selectedText) ? "zh" : "en";
+  selectedText =  to === 'zh' ? selectedText.toLocaleLowerCase() : selectedText;
+  //本地有数据则直接展示，不调用api
+  const localResult = searchLocal(ECDICT, selectedText);
+  if (localResult) return showData(localResult);
+  //调用api查询
   const { data } = await translate(selectedText, "auto", to);
-  if (data.hasOwnProperty("error_code"))
-    return (status.text = "$(megaphone) " + "查询错误/(ㄒoㄒ)/~~");
+  if (data.hasOwnProperty("error_code")) return showData(showApiError(data['error_code']));
   const translatedText = data.trans_result[0].dst;
+  showData(translatedText);
+}
+
+/* 底部展示 */
+function showData(translatedText) {
   status.text = "$(megaphone) " + translatedText;
   status.show();
 }
 
-//named
+/* 百度翻译api对应的错误码展示 */
+const errorCodeObj = {
+  '52001': "请求超时...",
+  '52003': "请检查您自定义的appid是否正确",
+  '54003': "服务器繁忙,请稍后再试",
+  '54005': "请降低长query的发送频率，3s后再试",
+};
+function showApiError(errorCode){
+  return errorCodeObj[errorCode]
+}
+
+/* named */
 async function updateSelectedText() {
   const currentEditor = vscode.window.activeTextEditor;
   let selectedText = getSelectedText();
-  //只对中文进行命名操作
+  //只对中文进行命名操作  简单正则判断下
   if (/^\w+$/.test(selectedText)) return;
   const { data } = await translate(selectedText, "zh", "en");
-  if (data.hasOwnProperty("error_code")) return;
+  if (data.hasOwnProperty("error_code")) return showData(showApiError(data['error_code']));
   const translatedText = data.trans_result[0].dst;
   const namedText = await worldSplit(translatedText, selectedText);
   currentEditor.edit((editBuilder) => {
@@ -50,6 +72,7 @@ async function updateSelectedText() {
   });
 }
 
+/* 单词分割拼接 */
 async function worldSplit(translatedText, selectedText) {
   // 基于空格分割
   const list = translatedText.split(" ");
@@ -84,14 +107,16 @@ async function worldSplit(translatedText, selectedText) {
   return selectWord ? selectWord : selectedText;
 }
 
+/* 获取选中文本 */
 function getSelectedText() {
   const currentEditor = vscode.window.activeTextEditor;
   if (!currentEditor) return;
   const currentSelect = currentEditor.document.getText(currentEditor.selection);
   if (!currentSelect) return;
-  return currentSelect;
+  return currentSelect.trim();
 }
 
+/* 请求api */
 function translate(q, from, to) {
   var salt = Math.random();
   return axios({
@@ -107,6 +132,20 @@ function translate(q, from, to) {
     },
   });
 }
+
+/* 本地搜索 */
+let ECDICT = {};
+for (let i = 0; i < 16; i++) {
+  let data = require("./dict/dict" + i).data;
+  for (let key in data) {
+    ECDICT[key] = data[key];
+  }
+}
+function searchLocal(ECDICT, selectedText) {
+  console.log(selectedText);
+  return ECDICT[selectedText] && ECDICT[selectedText].replace(/\\n/g, ' ');
+}
+
 
 exports.activate = activate;
 // this method is called when your extension is deactivated

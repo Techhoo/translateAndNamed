@@ -12,3 +12,5 @@
 node_modules
 .vscode-test/
 .vsix
+
+translate-and-named-*
