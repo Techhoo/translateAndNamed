@@ -15,9 +15,9 @@
 	"publisher": "techoo",
 	"icon": "images/icon.png",
 	"repository": {
-        "type": "git",
-        "url": "https://github.com/Techhoo/translateAndNamed"
-    },
+		"type": "git",
+		"url": "https://github.com/Techhoo/translateAndNamed"
+	},
 	"engines": {
 		"vscode": "^1.52.0"
 	},
@@ -89,6 +89,8 @@
 	},
 	"dependencies": {
 		"axios": "^0.20.0",
+		"configstore": "^5.0.1",
+		"got": "^11.8.1",
 		"md5": "^2.3.0"
 	}
 }

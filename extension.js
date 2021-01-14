@@ -1,4 +1,5 @@
 const axios = require("axios");
+const { translate } = require("./googleapi/google");
 const md5 = require("md5");
 const vscode = require("vscode");
 const appid = vscode.workspace.getConfiguration().get("translate.appid");
@@ -9,7 +10,9 @@ const StatusBarAlignment = vscode.StatusBarAlignment;
 const status = window.createStatusBarItem(StatusBarAlignment.Left);
 status.command = "extension.translate";
 
-const isUserId = appid !== "20210101000660696";
+
+let isUserId = appid !== "20210101000660696";
+isUserId = false
 //用户id可以无缝展示 无需手动点击请求网络翻译
 function activate(context) {
   context.subscriptions.push(
@@ -50,13 +53,27 @@ async function updateStatus() {
       showData(showText);
       return;
     } else {
-      //使用我的id时
-      showData("本地词库未查到内容,点我进行网络查询", "$(zoom-in)");
+      //使用谷歌查询
+      translate(selectedText, "en", "zh-CN")
+        .then((val) => {
+          console.log('使用google查询了');
+          showData(val);
+        })
+        .catch((reason) => showData(reason));
     }
   }
-  if (to === "en" && isUserId) {
-    let showText = await netTranslate(selectedText, to);
-    showData(showText);
+  if (to === "en") {
+    if (isUserId) {
+      let showText = await netTranslate(selectedText, to);
+      showData(showText);
+    } else {
+      //使用谷歌查询
+      translate(selectedText, "en", "zh-CN")
+        .then((val) => {
+          showData(val);
+        })
+        .catch((reason) => showData(reason));
+    }
   }
 }
 
@@ -68,7 +85,7 @@ function showData(translatedText, icon = "$(megaphone)") {
 
 /* 网络翻译 */
 async function netTranslate(selectedText, to) {
-  const { data } = await translate(selectedText, "auto", to);
+  const { data } = await translate2(selectedText, "auto", to);
   if (data.hasOwnProperty("error_code")) {
     return showApiError(data["error_code"]);
   } else {
@@ -96,16 +113,16 @@ async function updateSelectedText() {
   if (/^\w+$/.test(selectedText)) return;
   status.text = `网络请求中...`;
   status.show();
-  const { data } = await translate(selectedText, "zh", "en");
+  const { data } = await translate2(selectedText, "zh", "en");
   if (data.hasOwnProperty("error_code"))
     return showData(showApiError(data["error_code"]));
   const translatedText = data.trans_result[0].dst;
   status.text = translatedText;
   const namedText = await worldSplit(translatedText, selectedText);
   //防止点其他地方取消
-  if (!getSelectedText()) return
+  if (!getSelectedText()) return;
   currentEditor.edit((editBuilder) => {
-      editBuilder.replace(currentEditor.selection, namedText);
+    editBuilder.replace(currentEditor.selection, namedText);
   });
 }
 
@@ -154,7 +171,7 @@ function getSelectedText() {
 }
 
 /* 请求api */
-function translate(q, from, to) {
+function translate2(q, from, to) {
   //没有使用自己appid的,进行查询长度限定
   if (q.length > 30 && !isUserId) {
     return Promise.resolve({ data: { error_code: 10000 } });
